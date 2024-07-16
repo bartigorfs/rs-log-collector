@@ -1,71 +1,98 @@
-use bytes::Bytes;
-use http_body_util::Full;
-use hyper::server::conn::http1;
-use hyper::service::Service;
-use hyper::{body::Incoming as IncomingBody, Request, Response};
-use tokio::net::TcpListener;
+// mod database;
+// mod zstd_worker;
+//
+// use crate::database::Database;
+// use hyper::body::HttpBody;
+// use hyper::service::{make_service_fn, service_fn};
+// use hyper::{Body, Request, Response, Server};
+// use std::convert::Infallible;
+// use std::net::SocketAddr;
+// use std::sync::Arc;
+// use tokio::sync::Mutex;
+// use hyper::server::conn::AddrIncoming; // Add this import
+//
+//
+// async fn handle_request(
+//     db: Arc<Mutex<Database>>,
+//     req: Request<Body>,
+// ) -> Result<Response<Body>, Box<dyn std::error::Error + Send + Sync>> {
+//     let body = hyper::body::to_bytes(req.into_body()).await?;
+//     let db_clone = db.clone();
+//     let db_locked = db_clone.lock().await;
+//     db_locked.save_data(&body)?;
+//     Ok(Response::new(Body::from("Data saved successfully")))
+// }
+//
+// #[tokio::main]
+// async fn main() {
+//     let db = Database::new("db.json");
+//     let db = Arc::new(Mutex::new(db));
+//
+//     let make_svc = make_service_fn(|_conn| {
+//         let db = db.clone();
+//         async { Ok::<_, Infallible>(service_fn(move |req| handle_request(db.clone(), req))) }
+//     });
+//
+//     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+//
+//     let server_builder = Server::builder(AddrIncoming::bind(&addr)?);
+//
+//     let server = server_builder.serve(make_svc);
+//
+//     if let Err(e) = server.await {
+//         eprintln!("server error: {}", e);
+//     }
+//
+//     println!("Server running on http://{}", addr);
+//     server.await?;
+//     Ok(())
+// }
 
-use std::future::Future;
-use std::net::SocketAddr;
-use std::pin::Pin;
-use std::sync::{Arc, Mutex};
-use hyper_util::rt::TokioIo;
+mod utils;
+mod handlers;
 
-type Counter = i32;
+use ntex::web;
+use serde::{Deserialize, Serialize};
+use sqlx::{Connection, Pool, Sqlite, SqliteConnection, SqlitePool};
+use sqlx::sqlite::SqliteConnectOptions;
+use crate::utils::zstd_util;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let addr: SocketAddr = ([127, 0, 0, 1], 3000).into();
+#[web::get("/")]
+async fn hello() -> impl web::Responder {
 
-    let listener = TcpListener::bind(addr).await?;
-    println!("Listening on http://{}", addr);
-
-    let svc = Svc {
-        counter: Arc::new(Mutex::new(0)),
-    };
-
-    loop {
-        let (stream, _) = listener.accept().await?;
-        let io = TokioIo::new(stream);
-        let svc_clone = svc.clone();
-        tokio::task::spawn(async move {
-            if let Err(err) = http1::Builder::new().serve_connection(io, svc_clone).await {
-                println!("Failed to serve connection: {:?}", err);
-            }
-        });
-    }
+    web::HttpResponse::Ok().body("Hello world!")
 }
 
-#[derive(Debug, Clone)]
-struct Svc {
-    counter: Arc<Mutex<Counter>>,
+#[web::post("/echo")]
+async fn echo(req_body: String) -> impl web::Responder {
+    web::HttpResponse::Ok().body(req_body)
 }
 
-impl Service<Request<IncomingBody>> for Svc {
-    type Response = Response<Full<Bytes>>;
-    type Error = hyper::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+async fn manual_hello() -> impl web::Responder {
+    web::HttpResponse::Ok().body("Hey there!")
+}
 
-    fn call(&self, req: Request<IncomingBody>) -> Self::Future {
-        fn mk_response(s: String) -> Result<Response<Full<Bytes>>, hyper::Error> {
-            Ok(Response::builder().body(Full::new(Bytes::from(s))).unwrap())
-        }
+#[derive(Debug, Serialize, Deserialize)]
+struct Person {
+    name: String,
+    age: u8,
+}
 
-        if req.uri().path() != "/favicon.ico" {
-            *self.counter.lock().expect("lock poisoned") += 1;
-        }
+#[ntex::main]
+async fn main() -> std::io::Result<()> {
+    let options = SqliteConnectOptions::new()
+        .filename("logDB.db")
+        .create_if_missing(true);
 
-        let res = match req.uri().path() {
-            "/" => mk_response(format!("home! counter = {:?}", self.counter)),
-            "/posts" => mk_response(format!("posts, of course! counter = {:?}", self.counter)),
-            "/authors" => mk_response(format!(
-                "authors extraordinare! counter = {:?}",
-                self.counter
-            )),
+    let conn: Pool<Sqlite> = SqlitePool::connect_with(options).await.expect("Database connection is failed");
 
-            _ => return Box::pin(async { mk_response("oh no! not found".into()) }),
-        };
-
-        Box::pin(async { res })
-    }
+    web::HttpServer::new(|| {
+        web::App::new()
+            .service(hello)
+            .service(echo)
+            .route("/hey", web::get().to(manual_hello))
+    })
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
 }
