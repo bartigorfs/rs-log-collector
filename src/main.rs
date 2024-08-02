@@ -5,7 +5,6 @@ mod models;
 
 use dotenv::dotenv;
 use ntex::web;
-use serde::{Deserialize, Serialize};
 use sqlx::{Connection, Pool, Sqlite};
 use std::sync::Arc;
 use crate::handlers::log::log;
@@ -29,7 +28,9 @@ async fn main() -> std::io::Result<()> {
             .state(AppState {
                 sqlite: Arc::new(pool.clone()),
             })
-            .service(log)
+            .service({
+                web::resource("/log").route(web::post().to(log))
+            })
             .service(rotate)
     })
     .bind((host, port))?
