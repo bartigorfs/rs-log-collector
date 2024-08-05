@@ -23,9 +23,9 @@ pub fn send_json_error_response(
         "message": msg
     });
 
-    let body_str = body.to_string();
+    let body_str: String = body.to_string();
 
-    let body_bytes = Bytes::from(body_str);
+    let body_bytes: Bytes = Bytes::from(body_str);
 
     let mut resp = Response::new(full(body_bytes));
 

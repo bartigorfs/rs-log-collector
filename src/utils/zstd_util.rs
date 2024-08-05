@@ -1,7 +1,6 @@
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read};
 use tokio::fs;
-use zstd::Encoder;
 
 pub async fn compress_database() -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let mut input_file: File = File::open("logDB.db")?;

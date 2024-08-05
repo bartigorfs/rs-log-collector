@@ -23,7 +23,7 @@ pub async fn handle_log_rotate(
         }
     }
 
-    let result = match compress_database().await {
+    let result: Vec<u8> = match compress_database().await {
         Ok(data) => data,
         Err(e) => {
             let error_message = format!("Cannot compress database: {}", e);

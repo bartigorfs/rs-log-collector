@@ -1,34 +1,67 @@
 mod database;
 mod http;
-mod service;
+mod models;
 mod utils;
 
 use crate::http::api::run_server;
+use crate::models::app::AppConfig;
 use crate::utils::graceful::get_graceful_signal;
 use dotenv::dotenv;
+use lazy_static::lazy_static;
 use sqlx::{Pool, Sqlite};
+use std::collections::HashSet;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::signal;
 use tokio::sync::{watch, Mutex};
 
-#[tokio::main]
+lazy_static! {
+    static ref APP_CONFIG: AppConfig = {
+        dotenv().ok();
+
+        let app_port: u16 = env::var("PORT")
+            .expect("PORT must be set.")
+            .parse()
+            .unwrap();
+        let host: String = env::var("HOST").expect("HOST must be set.");
+
+        let db_path: String = env::var("DB_PATH").expect("DB_PATH must be set.");
+
+        let trusted_origins_str: String =
+            env::var("TRUSTED_ORIGINS").expect("TRUSTED_ORIGINS must be set.");
+
+        let trusted_origins: HashSet<String> = trusted_origins_str
+            .split(',')
+            .map(|origin| origin.to_string())
+            .collect();
+
+        let host_array: Vec<u16> = host
+            .split(".")
+            .map(|s| s.parse::<u16>().unwrap_or(0))
+            .collect::<Vec<u16>>();
+
+        AppConfig {
+            trusted_origins: Arc::new(trusted_origins),
+            host: host_array,
+            port: app_port,
+            db_path,
+        }
+    };
+}
+
+pub async fn get_app_config() -> &'static AppConfig {
+    &APP_CONFIG
+}
+
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> std::io::Result<()> {
-    dotenv().ok();
+    let config: &AppConfig = get_app_config().await;
 
     let pool: Pool<Sqlite> = database::init_pool().await.expect("Cannot init pool");
     let pool: Arc<Mutex<Pool<Sqlite>>> = Arc::new(Mutex::new(pool));
 
-    let port: u16 = std::env::var("PORT")
-        .expect("PORT must be set.")
-        .parse()
-        .unwrap();
-    // let host: String = std::env::var("HOST").expect("HOST must be set.");
-    //
-    // let host_array: Vec<u16> = host.split(".").map(|s| s.parse::<u16>().unwrap_or(0)).collect::<Vec<u16>>();
-
-    let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], port));
+    let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], config.port));
     let listener: TcpListener = TcpListener::bind(addr).await?;
 
     let (shutdown_tx, mut shutdown_rx) = watch::channel(());

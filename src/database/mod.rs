@@ -1,3 +1,5 @@
+use crate::get_app_config;
+use crate::models::app::AppConfig;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{Error, Pool, Sqlite, SqlitePool};
 use std::str::FromStr;
@@ -21,8 +23,11 @@ pub async fn close_pool(pool: &Arc<Mutex<SqlitePool>>) -> Result<(), Error> {
 }
 
 pub async fn connect_database() -> Result<Pool<Sqlite>, Error> {
+    let config: &AppConfig = get_app_config().await;
+
     let options: SqliteConnectOptions =
-        SqliteConnectOptions::from_str("sqlite://logDB.db")?.create_if_missing(true);
+        SqliteConnectOptions::from_str(&*format!("sqlite://{}", config.db_path).to_string())?
+            .create_if_missing(true);
 
     let pool: Pool<Sqlite> = SqlitePool::connect_with(options).await?;
 

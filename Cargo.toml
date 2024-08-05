@@ -21,5 +21,8 @@ http-body-util = "0.1.2"
 hyper-util = { version = "0.1.6", features = ["full"] }
 bytes = "1.5.0"
 tokio-signal = "0.2.9"
+tower = "0.4.13"
+chrono = "0.4.38"
+lazy_static = "1.5.0"
 
 
