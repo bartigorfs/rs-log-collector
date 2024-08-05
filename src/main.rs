@@ -1,39 +1,47 @@
 mod database;
-mod handlers;
+mod http;
+mod service;
 mod utils;
-mod models;
 
+use crate::http::api::run_server;
+use crate::utils::graceful::get_graceful_signal;
 use dotenv::dotenv;
-use ntex::web;
-use sqlx::{Connection, Pool, Sqlite};
+use sqlx::{Pool, Sqlite};
+use std::net::SocketAddr;
 use std::sync::Arc;
-use crate::handlers::log::log;
-use crate::handlers::rotate::rotate;
-use crate::models::app::AppState;
+use tokio::net::TcpListener;
+use tokio::signal;
+use tokio::sync::{watch, Mutex};
 
-#[ntex::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
-    let pool: Pool<Sqlite> = database::connect_database().await;
+    let pool: Pool<Sqlite> = database::init_pool().await.expect("Cannot init pool");
+    let pool: Arc<Mutex<Pool<Sqlite>>> = Arc::new(Mutex::new(pool));
 
     let port: u16 = std::env::var("PORT")
         .expect("PORT must be set.")
         .parse()
         .unwrap();
-    let host: String = std::env::var("HOST").expect("HOST must be set.");
+    // let host: String = std::env::var("HOST").expect("HOST must be set.");
+    //
+    // let host_array: Vec<u16> = host.split(".").map(|s| s.parse::<u16>().unwrap_or(0)).collect::<Vec<u16>>();
 
-    web::HttpServer::new(move || {
-        web::App::new()
-            .state(AppState {
-                sqlite: Arc::new(pool.clone()),
-            })
-            .service({
-                web::resource("/log").route(web::post().to(log))
-            })
-            .service(rotate)
-    })
-    .bind((host, port))?
-    .run()
-    .await
+    let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], port));
+    let listener: TcpListener = TcpListener::bind(addr).await?;
+
+    let (shutdown_tx, mut shutdown_rx) = watch::channel(());
+    let shutdown_signal = get_graceful_signal(shutdown_tx);
+
+    tokio::select! {
+        _ = shutdown_signal => {
+            println!("Received shutdown signal");
+        }
+        _ = run_server(listener, pool.clone(), &mut shutdown_rx) => {
+            println!("Server exited");
+        }
+    }
+
+    Ok(())
 }
