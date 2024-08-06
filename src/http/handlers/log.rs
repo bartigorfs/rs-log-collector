@@ -5,7 +5,7 @@ use http_body_util::combinators::BoxBody;
 use http_body_util::BodyExt;
 use hyper::body::Body;
 use hyper::{Request, Response, StatusCode};
-use sqlx::{Pool, Sqlite};
+use sqlx::{Error, Pool, Sqlite};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -13,7 +13,7 @@ pub async fn handle_post_log(
     pool: Arc<Mutex<Pool<Sqlite>>>,
     req: Request<hyper::body::Incoming>,
 ) -> Result<Response<BoxBody<Bytes, hyper::Error>>, hyper::Error> {
-    let max = req.body().size_hint().upper().unwrap_or(u64::MAX);
+    let max: u64 = req.body().size_hint().upper().unwrap_or(u64::MAX);
     if max > 1024 * 256 {    // 256kb
         send_json_error_response("Body too big", StatusCode::PAYLOAD_TOO_LARGE)?;
     }
@@ -31,11 +31,11 @@ pub async fn handle_post_log(
 
     let service_name: String = "TEST".to_string();
 
-    let result = service::sqlx::insert_log(pool, service_name, body_str).await;
+    let result: Result<(), Error> = service::sqlx::insert_log(pool, service_name, body_str).await;
 
     let response = match result {
         Err(e) => {
-            let error_message = e.to_string();
+            let error_message: String = e.to_string();
             send_json_error_response(&error_message, StatusCode::INTERNAL_SERVER_ERROR)?
         }
         Ok(()) => send_empty_ok()?,

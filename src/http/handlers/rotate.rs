@@ -18,7 +18,7 @@ pub async fn handle_log_rotate(
     match close_pool_result {
         Ok(_) => {}
         Err(e) => {
-            let error_message = format!("Cannot close connection pool: {}", e);
+            let error_message: String = format!("Cannot close connection pool: {}", e);
             send_json_error_response(&error_message, StatusCode::INTERNAL_SERVER_ERROR)?;
         }
     }
@@ -26,13 +26,13 @@ pub async fn handle_log_rotate(
     let result: Vec<u8> = match compress_database().await {
         Ok(data) => data,
         Err(e) => {
-            let error_message = format!("Cannot compress database: {}", e);
+            let error_message: String = format!("Cannot compress database: {}", e);
             return send_json_error_response(&error_message, StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
 
     if let Err(e) = database::reinitialize_pool(&pool).await {
-        let error_message = format!("Cannot reinitialize pool: {}", e);
+        let error_message: String = format!("Cannot reinitialize pool: {}", e);
         return send_json_error_response(&error_message, StatusCode::INTERNAL_SERVER_ERROR);
     }
 
