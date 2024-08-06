@@ -1,8 +1,9 @@
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
 use futures::future::BoxFuture;
 use http_body_util::combinators::BoxBody;
-use hyper::{Request, body::Incoming, service::Service, Response};
+use hyper::{body::Incoming, service::Service, Request, Response};
+use chrono::{DateTime, Utc};
+use std::fmt::Debug;
 
 #[derive(Debug, Clone)]
 pub struct Logger<S> {
@@ -19,16 +20,17 @@ impl<S> Service<Request<Incoming>> for Logger<S>
 where
     S: Service<Request<Incoming>, Response = Response<BoxBody<Bytes, hyper::Error>>>,
     S::Future: Send + 'static,
-    S::Error: std::fmt::Debug,
+    S::Error: Debug,
 {
     type Response = S::Response;
     type Error = S::Error;
     type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
 
     fn call(&self, req: Request<Incoming>) -> Self::Future {
+        let method = req.method().clone();
+        let uri = req.uri().clone();
+        let version = req.version();
         let now: DateTime<Utc> = Utc::now();
-
-        println!("{} Request: {} {} {:?}", now.to_rfc3339(), req.method(), req.uri(), req.version());
 
         let fut = self.inner.call(req);
 
@@ -36,10 +38,23 @@ where
             let result = fut.await;
             match &result {
                 Ok(response) => {
-                    println!("{} Response: {:?}", now.to_rfc3339(), response.status());
+                    println!(
+                        "{} Request: {} {} {:?} Status: {:?}",
+                        now.to_rfc3339(),
+                        method,
+                        uri,
+                        version,
+                        response.status()
+                    );
                 }
-                Err(err) => {
-                    println!("{} Error: {:?}", now.to_rfc3339(), err);
+                Err(_) => {
+                    println!(
+                        "{} Request failed: {} {} {:?}",
+                        now.to_rfc3339(),
+                        method,
+                        uri,
+                        version
+                    );
                 }
             }
             result

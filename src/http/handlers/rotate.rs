@@ -1,6 +1,6 @@
 use crate::database;
 use crate::utils::hyper_util::{full, send_json_error_response};
-use crate::utils::zstd_util::compress_database;
+use crate::utils::lz4_util::compress_database;
 use base64::engine::general_purpose;
 use base64::Engine;
 use bytes::Bytes;
