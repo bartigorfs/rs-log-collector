@@ -13,6 +13,7 @@ use std::collections::HashSet;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use chrono::Utc;
 use tokio::net::TcpListener;
 use tokio::sync::{watch, Mutex};
 
@@ -24,6 +25,7 @@ lazy_static! {
             .expect("PORT must be set.")
             .parse()
             .unwrap();
+
         let host: String = env::var("HOST").expect("HOST must be set.");
 
         let db_path: String = env::var("DB_PATH").expect("DB_PATH must be set.");
@@ -66,6 +68,9 @@ async fn main() -> std::io::Result<()> {
 
     let (shutdown_tx, mut shutdown_rx) = watch::channel(());
     let shutdown_signal = get_graceful_signal(shutdown_tx);
+
+    let message = format!("{tz} Server started on {}", config.port, tz = Utc::now());
+    println!("{}", message);
 
     tokio::select! {
         _ = shutdown_signal => {

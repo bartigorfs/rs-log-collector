@@ -15,7 +15,6 @@ dotenv = "0.15.0"
 futures = "0.3.30"
 bytes-utils = "0.1.4"
 base64 = "0.22.1"
-eventbus = "0.5.1"
 hyper = { version = "1.4.1", features = ["full"] }
 http-body-util = "0.1.2"
 hyper-util = { version = "0.1.6", features = ["full"] }
