@@ -6,14 +6,14 @@ use base64::Engine;
 use bytes::Bytes;
 use http_body_util::combinators::BoxBody;
 use hyper::{Response, StatusCode};
-use sqlx::{Pool, Sqlite};
+use sqlx::{Error, Pool, Sqlite};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 pub async fn handle_log_rotate(
     pool: Arc<Mutex<Pool<Sqlite>>>,
 ) -> Result<Response<BoxBody<Bytes, hyper::Error>>, hyper::Error> {
-    let close_pool_result = database::close_pool(&pool).await;
+    let close_pool_result: Result<(), Error> = database::close_pool(&pool).await;
 
     match close_pool_result {
         Ok(_) => {}
