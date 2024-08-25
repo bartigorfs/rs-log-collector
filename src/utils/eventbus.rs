@@ -3,8 +3,6 @@ use tokio::sync::Mutex;
 use crate::models::async_handler::AsyncListener;
 use crate::models::log_evt::LogEvent;
 
-pub type Listener<T> = Box<dyn Fn(&T) + Send + Sync>;
-
 pub struct EventBus {
     listeners: Arc<Mutex<Vec<Arc<dyn AsyncListener + Send + Sync>>>>,
 }

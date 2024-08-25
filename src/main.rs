@@ -21,6 +21,10 @@ use crate::models::log_evt::LogEvent;
 use crate::utils::eventbus::EventBus;
 
 lazy_static! {
+    pub static ref LOG_EVENT_BUS: EventBus = EventBus::new();
+    pub static ref UNCOMMITTED_LOG: Mutex<Vec<LogEvent>> = Mutex::new(Vec::new());
+    pub static ref ROTATE_ACTIVE: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
+
     static ref APP_CONFIG: AppConfig = {
         dotenv().ok();
 
@@ -53,11 +57,6 @@ lazy_static! {
             db_path,
         }
     };
-}
-
-lazy_static! {
-    pub static ref LOG_EVENT_BUS: EventBus = EventBus::new();
-    pub static ref UNCOMMITTED_LOG: Mutex<Vec<LogEvent>> = Mutex::new(Vec::new());
 }
 
 pub async fn get_app_config() -> &'static AppConfig {
