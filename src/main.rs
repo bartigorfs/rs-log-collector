@@ -16,6 +16,9 @@ use std::sync::Arc;
 use chrono::Utc;
 use tokio::net::TcpListener;
 use tokio::sync::{watch, Mutex};
+use crate::models::async_handler::AsyncDbWriter;
+use crate::models::log_evt::LogEvent;
+use crate::utils::eventbus::EventBus;
 
 lazy_static! {
     static ref APP_CONFIG: AppConfig = {
@@ -52,6 +55,11 @@ lazy_static! {
     };
 }
 
+lazy_static! {
+    pub static ref LOG_EVENT_BUS: EventBus = EventBus::new();
+    pub static ref UNCOMMITTED_LOG: Mutex<Vec<LogEvent>> = Mutex::new(Vec::new());
+}
+
 pub async fn get_app_config() -> &'static AppConfig {
     &APP_CONFIG
 }
@@ -65,6 +73,13 @@ async fn main() -> std::io::Result<()> {
 
     let addr: SocketAddr = SocketAddr::from(([0, 0, 0, 0], config.port));
     let listener: TcpListener = TcpListener::bind(addr).await?;
+
+
+    let db_writer = AsyncDbWriter {
+        pool: pool.clone(),
+    };
+
+    LOG_EVENT_BUS.subscribe(db_writer).await;
 
     let (shutdown_tx, mut shutdown_rx) = watch::channel(());
     let shutdown_signal = get_graceful_signal(shutdown_tx);

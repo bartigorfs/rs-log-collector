@@ -1,16 +1,13 @@
-use crate::http::service;
+use crate::models::log_evt::LogEvent;
 use crate::utils::hyper_util::{full, send_empty_ok, send_json_error_response};
+use crate::LOG_EVENT_BUS;
 use bytes::Bytes;
 use http_body_util::combinators::BoxBody;
 use http_body_util::BodyExt;
 use hyper::body::Body;
 use hyper::{HeaderMap, Request, Response, StatusCode};
-use sqlx::{Error, Pool, Sqlite};
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub async fn handle_post_log(
-    pool: Arc<Mutex<Pool<Sqlite>>>,
     req: Request<hyper::body::Incoming>,
 ) -> Result<Response<BoxBody<Bytes, hyper::Error>>, hyper::Error> {
     let max: u64 = req.body().size_hint().upper().unwrap_or(u64::MAX);
@@ -20,10 +17,10 @@ pub async fn handle_post_log(
 
     let headers: HeaderMap = req.headers().clone();
 
-    let service_name: &str = headers
+    let service_name: String = headers
         .get("Service")
         .and_then(|header_value| header_value.to_str().ok())
-        .unwrap_or("Unknown Service");
+        .unwrap_or("Unknown Service").to_string();
 
     let whole_body: Bytes = req.collect().await?.to_bytes();
 
@@ -36,15 +33,12 @@ pub async fn handle_post_log(
         }
     };
 
-    let result: Result<(), Error> = service::sqlx::insert_log(pool, service_name, body_str).await;
+    tokio::spawn(async move {
+        LOG_EVENT_BUS.push(LogEvent {
+            entity: service_name,
+            data: body_str,
+        }).await;
+    });
 
-    let response = match result {
-        Err(e) => {
-            let error_message: String = e.to_string();
-            send_json_error_response(&error_message, StatusCode::INTERNAL_SERVER_ERROR)?
-        }
-        Ok(()) => send_empty_ok()?,
-    };
-
-    Ok(response)
+    send_empty_ok()
 }

@@ -15,7 +15,7 @@ pub async fn router(
     match (req.method(), req.uri().path()) {
         (&Method::GET, "/health") => send_empty_ok(),
 
-        (&Method::POST, "/log") => handle_post_log(pool, req).await,
+        (&Method::POST, "/log") => handle_post_log(req).await,
 
         (&Method::GET, "/rotate") => handle_log_rotate(pool).await,
 
