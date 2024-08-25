@@ -63,7 +63,7 @@ async fn main() -> std::io::Result<()> {
     let pool: Pool<Sqlite> = database::init_pool().await.expect("Cannot init pool");
     let pool: Arc<Mutex<Pool<Sqlite>>> = Arc::new(Mutex::new(pool));
 
-    let addr: SocketAddr = SocketAddr::from(([127, 0, 0, 1], config.port));
+    let addr: SocketAddr = SocketAddr::from(([0, 0, 0, 0], config.port));
     let listener: TcpListener = TcpListener::bind(addr).await?;
 
     let (shutdown_tx, mut shutdown_rx) = watch::channel(());

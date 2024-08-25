@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 
 pub async fn insert_log(
     pool: Arc<Mutex<Pool<Sqlite>>>,
-    service_name: String,
+    service_name: &str,
     data: String,
 ) -> Result<(), Error> {
     let pool_guard = pool.lock().await;

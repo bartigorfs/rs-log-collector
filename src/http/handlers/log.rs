@@ -4,7 +4,7 @@ use bytes::Bytes;
 use http_body_util::combinators::BoxBody;
 use http_body_util::BodyExt;
 use hyper::body::Body;
-use hyper::{Request, Response, StatusCode};
+use hyper::{HeaderMap, Request, Response, StatusCode};
 use sqlx::{Error, Pool, Sqlite};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -18,6 +18,13 @@ pub async fn handle_post_log(
         send_json_error_response("Body too big", StatusCode::PAYLOAD_TOO_LARGE)?;
     }
 
+    let headers: HeaderMap = req.headers().clone();
+
+    let service_name: &str = headers
+        .get("Service")
+        .and_then(|header_value| header_value.to_str().ok())
+        .unwrap_or("Unknown Service");
+
     let whole_body: Bytes = req.collect().await?.to_bytes();
 
     let body_str: String = match String::from_utf8(Vec::from(whole_body)) {
@@ -28,8 +35,6 @@ pub async fn handle_post_log(
             return Ok(resp);
         }
     };
-
-    let service_name: String = "TEST".to_string();
 
     let result: Result<(), Error> = service::sqlx::insert_log(pool, service_name, body_str).await;
 
