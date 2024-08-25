@@ -1,10 +1,10 @@
 use std::sync::{Arc};
 use tokio::sync::Mutex;
-use crate::models::async_handler::AsyncListener;
+use crate::models::async_handler::AsyncLogListener;
 use crate::models::log_evt::LogEvent;
 
 pub struct EventBus {
-    listeners: Arc<Mutex<Vec<Arc<dyn AsyncListener + Send + Sync>>>>,
+    listeners: Arc<Mutex<Vec<Arc<dyn AsyncLogListener + Send + Sync>>>>,
 }
 
 impl EventBus {
@@ -23,7 +23,7 @@ impl EventBus {
 
     pub async fn subscribe<F>(&self, listener: F)
     where
-        F: AsyncListener + 'static + Send + Sync,
+        F: AsyncLogListener + 'static + Send + Sync,
     {
         let mut listeners = self.listeners.lock().await;
         listeners.push(Arc::new(listener));    }

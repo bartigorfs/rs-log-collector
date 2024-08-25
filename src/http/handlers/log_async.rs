@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use crate::http::service;
-use crate::models::async_handler::{AsyncDbWriter, AsyncListener};
+use crate::models::async_handler::{AsyncDbWriter, AsyncLogListener};
 use crate::models::log_evt::LogEvent;
 use crate::UNCOMMITTED_LOG;
 
 #[async_trait]
-impl AsyncListener for AsyncDbWriter {
+impl AsyncLogListener for AsyncDbWriter {
     async fn call(&self, value: &LogEvent) {
         println!("Listener received: {:?}", value);
 

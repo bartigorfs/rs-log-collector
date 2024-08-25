@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 use crate::models::log_evt::LogEvent;
 
 #[async_trait]
-pub trait AsyncListener {
+pub trait AsyncLogListener {
     async fn call(&self, value: &LogEvent);
 }
 

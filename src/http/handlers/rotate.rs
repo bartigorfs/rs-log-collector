@@ -1,4 +1,4 @@
-use crate::utils::hyper_util::{full, send_empty_ok, send_json_error_response};
+use crate::utils::hyper_util::{full, send_json_error_response};
 use crate::utils::lz4_util::compress_database;
 use crate::{database, ROTATE_ACTIVE};
 use base64::engine::general_purpose;
@@ -9,6 +9,7 @@ use hyper::{Response, StatusCode};
 use sqlx::{Error, Pool, Sqlite};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use crate::http::handlers::log_queue::process_log_queue;
 
 pub async fn handle_log_rotate(
     pool: Arc<Mutex<Pool<Sqlite>>>,
@@ -47,6 +48,8 @@ pub async fn handle_log_rotate(
         let error_message: String = format!("Cannot reinitialize pool: {}", e);
         return send_json_error_response(&error_message, StatusCode::INTERNAL_SERVER_ERROR);
     }
+
+    process_log_queue().await;
 
     let mut resp = Response::new(full(general_purpose::STANDARD.encode(result)));
     *resp.status_mut() = StatusCode::OK;
