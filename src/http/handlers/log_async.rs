@@ -10,7 +10,7 @@ impl AsyncLogListener for AsyncDbWriter {
         println!("Listener received: {:?}", value);
 
         let pool = self.pool.clone();
-        let _result = service::sqlx::insert_log(pool, value.clone().entity, value.clone().data).await;
+        let _result = service::sqlx::insert_log(pool, value.clone().timestamp, value.clone().entity, value.clone().data).await;
 
         match _result {
             Err(e) => {

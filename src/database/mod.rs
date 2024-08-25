@@ -34,7 +34,7 @@ pub async fn connect_database() -> Result<Pool<Sqlite>, Error> {
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            timestamp DATETIME,
             entity TEXT,
             log TEXT
         );",

@@ -2,6 +2,7 @@ use crate::models::log_evt::LogEvent;
 use crate::utils::hyper_util::{full, send_empty_ok, send_json_error_response};
 use crate::{LOG_EVENT_BUS, ROTATE_ACTIVE, UNCOMMITTED_LOG};
 use bytes::Bytes;
+use chrono::Utc;
 use http_body_util::combinators::BoxBody;
 use http_body_util::BodyExt;
 use hyper::body::Body;
@@ -36,7 +37,12 @@ pub async fn handle_post_log(
         }
     };
 
+    let now = Utc::now().naive_utc();
+
+    let timestamp_str = now.format("%Y-%m-%d %H:%M:%S").to_string();
+
     let log_evt: LogEvent = LogEvent {
+        timestamp: timestamp_str,
         entity: service_name,
         data: body_str,
     };
