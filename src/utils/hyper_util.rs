@@ -1,6 +1,7 @@
 use bytes::Bytes;
 use http_body_util::{combinators::BoxBody, BodyExt, Empty, Full};
 use hyper::{header, Error, Response, StatusCode};
+use hyper::header::HeaderValue;
 use serde_json::{json};
 
 pub fn empty() -> BoxBody<Bytes, Error> {
@@ -33,7 +34,20 @@ pub fn send_json_error_response(
 
     resp.headers_mut().insert(
         header::CONTENT_TYPE,
-        header::HeaderValue::from_str("application/json").unwrap(),
+        HeaderValue::from_str("application/json").unwrap(),
+    );
+
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        HeaderValue::from_static("*"),
+    );
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_METHODS,
+        HeaderValue::from_static("GET, POST, OPTIONS"),
+    );
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_HEADERS,
+        HeaderValue::from_static("Content-Type"),
     );
 
     Ok(resp)
@@ -43,7 +57,6 @@ pub fn send_success_with_payload(
     data: String,
     status_code: StatusCode,
 ) -> Result<Response<BoxBody<Bytes, Error>>, Error> {
-
     let body_bytes: Bytes = Bytes::from(data);
 
     let mut resp = Response::new(full(body_bytes));
@@ -52,14 +65,41 @@ pub fn send_success_with_payload(
 
     resp.headers_mut().insert(
         header::CONTENT_TYPE,
-        header::HeaderValue::from_str("application/json").unwrap(),
+        HeaderValue::from_str("application/json").unwrap(),
+    );
+
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        HeaderValue::from_static("*"),
+    );
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_METHODS,
+        HeaderValue::from_static("GET, POST, OPTIONS"),
+    );
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_HEADERS,
+        HeaderValue::from_static("Content-Type"),
     );
 
     Ok(resp)
 }
 
-pub fn send_empty_ok() -> Result<Response<BoxBody<Bytes, Error>>, Error>  {
+pub fn send_empty_ok() -> Result<Response<BoxBody<Bytes, Error>>, Error> {
     let mut resp = Response::new(empty());
     *resp.status_mut() = StatusCode::OK;
+
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        HeaderValue::from_static("*"),
+    );
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_METHODS,
+        HeaderValue::from_static("GET, POST, OPTIONS"),
+    );
+    resp.headers_mut().insert(
+        header::ACCESS_CONTROL_ALLOW_HEADERS,
+        HeaderValue::from_static("Content-Type"),
+    );
+
     Ok(resp)
 }
