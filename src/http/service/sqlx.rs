@@ -1,5 +1,6 @@
 use sqlx::{Error, Pool, Sqlite};
 use std::sync::Arc;
+use sqlx::sqlite::{SqliteQueryResult, SqliteRow};
 use tokio::sync::Mutex;
 
 pub async fn insert_log(
@@ -19,4 +20,23 @@ pub async fn insert_log(
         .await?;
 
     Ok(())
+}
+
+pub async fn get_log(
+    pool: Arc<Mutex<Pool<Sqlite>>>,
+    date_from: String,
+    date_to: String,
+    service_name: String,
+) -> Result<(Vec<SqliteRow>), Error> {
+    let pool_guard = pool.lock().await;
+    let pool_ref = &*pool_guard;
+
+    let result: Vec<SqliteRow> = sqlx::query("SELECT * FROM log WHERE entity = $1 AND timestamp BETWEEN $2 AND $3")
+        .bind(service_name)
+        .bind(date_from)
+        .bind(date_to)
+        .fetch_all(pool_ref)
+        .await?;
+
+    Ok(result)
 }

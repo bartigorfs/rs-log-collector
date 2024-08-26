@@ -1,3 +1,5 @@
+use crate::http::handlers::log::{handle_get_log, handle_post_log};
+use crate::http::handlers::rotate::handle_log_rotate;
 use crate::utils::hyper_util::{empty, send_empty_ok};
 use bytes::Bytes;
 use http_body_util::combinators::BoxBody;
@@ -5,8 +7,6 @@ use hyper::{Method, Request, Response, StatusCode};
 use sqlx::{Pool, Sqlite};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use crate::http::handlers::log::handle_post_log;
-use crate::http::handlers::rotate::handle_log_rotate;
 
 pub async fn router(
     pool: Arc<Mutex<Pool<Sqlite>>>,
@@ -18,6 +18,8 @@ pub async fn router(
         (&Method::POST, "/log") => handle_post_log(req).await,
 
         (&Method::GET, "/rotate") => handle_log_rotate(pool).await,
+
+        (&Method::GET, "/query") => handle_get_log(req, pool).await,
 
         _ => {
             let mut not_found = Response::new(empty());

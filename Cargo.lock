@@ -1290,6 +1290,7 @@ dependencies = [
  "tokio",
  "tokio-signal",
  "tower",
+ "url",
  "zstd",
 ]
 

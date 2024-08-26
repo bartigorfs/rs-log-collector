@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 use tower::ServiceBuilder;
+use crate::http::middleware::query_params::QueryParams;
 
 pub async fn run_server(
     listener: TcpListener,
@@ -36,6 +37,7 @@ pub async fn run_server(
 
             let svc = ServiceBuilder::new().layer_fn(Logger::new).service(svc);
             let svc = ServiceBuilder::new().layer_fn(|inner| OriginValidation::new(inner, addr.to_string(), Arc::clone(&config.trusted_origins))).service(svc);
+            let svc = ServiceBuilder::new().layer_fn(QueryParams::new).service(svc);
 
             if let Err(err) = http1::Builder::new().serve_connection(io, svc).await {
                 eprintln!("Error serving connection: {:?}", err);

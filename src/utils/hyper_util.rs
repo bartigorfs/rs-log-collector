@@ -39,6 +39,25 @@ pub fn send_json_error_response(
     Ok(resp)
 }
 
+pub fn send_success_with_payload(
+    data: String,
+    status_code: StatusCode,
+) -> Result<Response<BoxBody<Bytes, Error>>, Error> {
+
+    let body_bytes: Bytes = Bytes::from(data);
+
+    let mut resp = Response::new(full(body_bytes));
+
+    *resp.status_mut() = status_code;
+
+    resp.headers_mut().insert(
+        header::CONTENT_TYPE,
+        header::HeaderValue::from_str("application/json").unwrap(),
+    );
+
+    Ok(resp)
+}
+
 pub fn send_empty_ok() -> Result<Response<BoxBody<Bytes, Error>>, Error>  {
     let mut resp = Response::new(empty());
     *resp.status_mut() = StatusCode::OK;
