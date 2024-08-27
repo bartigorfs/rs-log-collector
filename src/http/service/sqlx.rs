@@ -1,6 +1,6 @@
+use sqlx::sqlite::SqliteRow;
 use sqlx::{Error, Pool, Sqlite};
 use std::sync::Arc;
-use sqlx::sqlite::{SqliteQueryResult, SqliteRow};
 use tokio::sync::Mutex;
 
 pub async fn insert_log(

@@ -68,8 +68,6 @@ pub async fn handle_get_log(
     req: Request<hyper::body::Incoming>,
     pool: Arc<Mutex<Pool<Sqlite>>>,
 ) -> Result<Response<BoxBody<Bytes, hyper::Error>>, hyper::Error> {
-    let mut logs: Vec<LogEntry> = Vec::new();
-
     let mut date_from: String = "".to_string();
     let mut date_to: String = "".to_string();
     let mut service_name: String = "".to_string();
@@ -113,7 +111,6 @@ pub async fn handle_get_log(
         }
     };
 
-    // Сериализуем логи в JSON
     match serde_json::to_string(&logs) {
         Ok(json_string) => Ok(send_success_with_payload(json_string, StatusCode::OK)?),
         Err(_) => Ok(send_json_error_response(
@@ -121,5 +118,4 @@ pub async fn handle_get_log(
             StatusCode::INTERNAL_SERVER_ERROR,
         )?),
     }
-
 }
